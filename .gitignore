@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+helpscout_conversations_last_30_days.csv

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Support Operations - TV</title>
+<style>
+
+  :root{
+    --page:      #0a0e12;
+    --panel:     #121820;
+    --panel-2:   #182029;
+    --hairline:  #232d38;
+    --ink:       #f4f7f9;
+    --ink-dim:   #9db0bd;
+    --ink-mute:  #6c7f8c;
+
+    --cyan:      #38bdf8;
+    --cyan-dim:  #1c3a4a;
+    --green:     #34d399;
+    --green-dim: #113328;
+    --amber:     #fbbf24;
+    --amber-dim: #3a2f10;
+    --red:       #f87171;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; width:100%; height:100%; background: var(--page); }
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  /* The design is authored for a fixed 1920x1080 canvas. #stage holds that
+     canvas at its native size; JS scales+centers it to whatever window it's
+     actually shown in (laptop or TV) so nothing ever clips or scrolls. */
+  #stage{
+    position: fixed; top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    transform-origin: top left;
+  }
+  .board{
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    padding: 28px 40px 32px;
+    gap: 20px;
+  }
+
+  .board-header{ display:flex; align-items:center; justify-content:space-between; flex: 0 0 auto; }
+  .brand{ display:flex; align-items:center; gap: 14px; }
+  .brand-mark{ width: 14px; height: 14px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 16px var(--cyan); }
+  .brand-name{ font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: var(--ink-dim); }
+  .header-right{ display:flex; align-items:center; gap: 16px; }
+  .updated{ font-size: 20px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+  .stale-flag{ font-size: 16px; font-weight: 700; letter-spacing: 0.06em; padding: 5px 12px; border-radius: 6px; }
+  .stale-warning{ background: var(--amber-dim); color: var(--amber); }
+  .stale-critical{ background: #3a1414; color: var(--red); }
+
+  .kpi-row{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 20px; flex: 0 0 auto; }
+  .kpi{ background: var(--panel); border: 1px solid var(--hairline); border-radius: 26px; padding: 22px 28px; position: relative; overflow: hidden; }
+  .kpi::before{ content:""; position:absolute; left:0; top:0; bottom:0; width: 6px; }
+  .kpi-open::before{ background: var(--cyan); }
+  .kpi-new::before{ background: var(--cyan); opacity: .55; }
+  .kpi-closed::before{ background: var(--green); }
+  .kpi-time::before{ background: var(--green); opacity: .7; }
+  .kpi-label{ font-size: 20px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); }
+  .kpi-value{ font-size: 88px; font-weight: 800; line-height: 1.05; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .kpi-open .kpi-value{ color: var(--cyan); }
+  .kpi-new .kpi-value{ color: var(--ink); }
+  .kpi-closed .kpi-value{ color: var(--green); }
+  .kpi-time .kpi-value{ color: var(--ink); font-size: 68px; }
+  .kpi-sub{ font-size: 19px; color: var(--ink-mute); margin-top: 4px; min-height: 24px; }
+
+  .mid-row{ display:grid; grid-template-columns: 1.5fr 1fr; gap: 20px; flex: 1 1 auto; min-height: 0; }
+  .bottom-row{ display:grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1 1 auto; min-height: 0; }
+
+  .panel{ background: var(--panel); border: 1px solid var(--hairline); border-radius: 26px; padding: 24px 28px; display:flex; flex-direction:column; min-height: 0; }
+  .panel-title{ font-size: 22px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 18px; flex: 0 0 auto; }
+
+  .issue-list{ display:flex; flex-direction:column; justify-content: space-evenly; flex: 1 1 auto; }
+  .issue-row{ display:grid; grid-template-columns: 230px 1fr 70px; align-items:center; gap: 18px; }
+  .issue-label{ font-size: 26px; font-weight: 600; color: var(--ink); }
+  .issue-track{ background: var(--panel-2); border-radius: 999px; height: 30px; overflow: hidden; }
+  .issue-fill{ height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)); }
+  .issue-count{ font-size: 30px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .device-row{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1 1 auto; align-content: center; }
+  .device-card{ background: var(--panel-2); border-radius: 20px; padding: 20px 10px; text-align:center; }
+  .device-name{ font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-dim); text-transform: uppercase; }
+  .device-count{ font-size: 64px; font-weight: 800; color: var(--cyan); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .device-unit{ font-size: 16px; color: var(--ink-mute); letter-spacing: 0.1em; margin-top: 2px; }
+  .device-other{ text-align:center; margin-top: 14px; font-size: 18px; color: var(--ink-mute); flex: 0 0 auto; }
+  .device-other strong{ color: var(--ink-dim); font-size: 22px; }
+
+  .case-header-row, .closed-header-row{
+    display:grid; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-mute); padding-bottom: 10px; border-bottom: 1px solid var(--hairline); flex: 0 0 auto;
+  }
+  .case-header-row{ grid-template-columns: 110px 90px 1fr 90px; }
+  .closed-header-row{ grid-template-columns: 90px 1fr 160px; }
+
+  .case-list, .closed-list{ display:flex; flex-direction:column; justify-content: space-evenly; flex: 1 1 auto; }
+  .case-row{ display:grid; grid-template-columns: 110px 90px 1fr 90px; align-items:center; gap: 4px; padding: 6px 0; }
+  .case-age{ font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .case-age.age-warning{ color: var(--amber); }
+  .case-age.age-critical{ color: var(--red); }
+  .case-number{ font-size: 22px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+  .case-subject{ font-size: 24px; color: var(--ink); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding-right: 10px; }
+  .case-device{ font-size: 20px; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; }
+
+  .closed-row{ display:grid; grid-template-columns: 90px 1fr 160px; align-items:center; gap: 4px; padding: 6px 0; }
+  .closed-number{ font-size: 22px; color: var(--ink-mute); font-variant-numeric: tabular-nums; }
+  .closed-subject{ font-size: 24px; color: var(--ink); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding-right: 10px; }
+  .closed-duration{ font-size: 24px; font-weight: 700; color: var(--green); text-align:right; font-variant-numeric: tabular-nums; }
+
+  .empty{ font-size: 22px; color: var(--ink-mute); text-align:center; margin: auto; }
+
+</style>
+</head>
+<body>
+  <div id="stage">
+  <div class="board">
+    <header class="board-header">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">SUPPORT</span>
+      </div>
+      <div class="header-right">
+        <span id="staleFlag" class="stale-flag" hidden></span>
+        <span class="updated" id="updatedLabel">Updated Aug 11 · 9:55 AM</span>
+      </div>
+    </header>
+
+    <section class="kpi-row">
+      <div class="kpi kpi-open">
+        <div class="kpi-label">Open Now</div>
+        <div class="kpi-value">18</div>
+        <div class="kpi-sub">1 Active · 17 Pending</div>
+      </div>
+      <div class="kpi kpi-new">
+        <div class="kpi-label">New Today</div>
+        <div class="kpi-value">1</div>
+        <div class="kpi-sub">Yesterday: 4 new</div>
+      </div>
+      <div class="kpi kpi-closed">
+        <div class="kpi-label">Closed Today</div>
+        <div class="kpi-value">0</div>
+        <div class="kpi-sub">Yesterday: 8 closed</div>
+      </div>
+      <div class="kpi kpi-time">
+        <div class="kpi-label">Avg Time to Close</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-sub"></div>
+      </div>
+    </section>
+
+    <section class="mid-row">
+      <div class="panel panel-issues">
+        <div class="panel-title">Top Open Issues</div>
+        <div class="issue-list">
+        <div class="issue-row">
+          <div class="issue-label">Camera</div>
+          <div class="issue-track"><div class="issue-fill" style="width:100%"></div></div>
+          <div class="issue-count">5</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-label">Integration</div>
+          <div class="issue-track"><div class="issue-fill" style="width:80%"></div></div>
+          <div class="issue-count">4</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-label">Connectivity</div>
+          <div class="issue-track"><div class="issue-fill" style="width:80%"></div></div>
+          <div class="issue-count">4</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-label">Account</div>
+          <div class="issue-track"><div class="issue-fill" style="width:60%"></div></div>
+          <div class="issue-count">3</div>
+        </div>
+        <div class="issue-row">
+          <div class="issue-label">Networking</div>
+          <div class="issue-track"><div class="issue-fill" style="width:40%"></div></div>
+          <div class="issue-count">2</div>
+        </div></div>
+      </div>
+      <div class="panel panel-devices">
+        <div class="panel-title">Open by Device</div>
+        <div class="device-row">
+        <div class="device-card">
+          <div class="device-name">5G</div>
+          <div class="device-count">3</div>
+          <div class="device-unit">OPEN</div>
+        </div>
+        <div class="device-card">
+          <div class="device-name">Blue</div>
+          <div class="device-count">4</div>
+          <div class="device-unit">OPEN</div>
+        </div>
+        <div class="device-card">
+          <div class="device-name">Black</div>
+          <div class="device-count">3</div>
+          <div class="device-unit">OPEN</div>
+        </div></div>
+        <div class="device-other">Other / Unclassified &nbsp;<strong>8</strong></div>
+      </div>
+    </section>
+
+    <section class="bottom-row">
+      <div class="panel panel-oldest">
+        <div class="panel-title">Oldest Open Cases</div>
+        <div class="case-header-row">
+          <div>Age</div><div>Case</div><div>Subject</div><div>Device</div>
+        </div>
+        <div class="case-list">
+        <div class="case-row">
+          <div class="case-age age-critical">136d 14h</div>
+          <div class="case-number">#4490</div>
+          <div class="case-subject">Trip reports</div>
+          <div class="case-device">Black</div>
+        </div>
+        <div class="case-row">
+          <div class="case-age age-critical">59d 19h</div>
+          <div class="case-number">#5414</div>
+          <div class="case-subject">Starlink Transfer</div>
+          <div class="case-device">—</div>
+        </div>
+        <div class="case-row">
+          <div class="case-age age-critical">36d</div>
+          <div class="case-number">#5610</div>
+          <div class="case-subject">Re: BBLU Offline and App access</div>
+          <div class="case-device">Blue</div>
+        </div>
+        <div class="case-row">
+          <div class="case-age age-critical">32d 5h</div>
+          <div class="case-number">#5658</div>
+          <div class="case-subject">Re: BBLU-120260402635 - Cameras Not Showing V…</div>
+          <div class="case-device">Blue</div>
+        </div>
+        <div class="case-row">
+          <div class="case-age age-critical">29d</div>
+          <div class="case-number">#5679</div>
+          <div class="case-subject">Re: Fwd: Boat Offline</div>
+          <div class="case-device">5G</div>
+        </div></div>
+      </div>
+      <div class="panel panel-closed">
+        <div class="panel-title">Closed Today</div>
+        <div class="closed-header-row">
+          <div>Case</div><div>Subject</div><div>Time to Close</div>
+        </div>
+        <div class="closed-list"><div class="empty">No cases closed yet today</div></div>
+      </div>
+    </section>
+  </div>
+  </div>
+
+<script>
+  var GENERATED_AT = 1786467329944;
+  var WARN_MS = 1800000;
+  var CRITICAL_MS = 7200000;
+
+  function updateStaleness(){
+    var ageMs = Date.now() - GENERATED_AT;
+    var ageMin = Math.floor(ageMs / 60000);
+    var flag = document.getElementById("staleFlag");
+    if (ageMs < WARN_MS){
+      flag.hidden = true;
+      return;
+    }
+    flag.hidden = false;
+    flag.textContent = "DATA " + ageMin + " MIN OLD";
+    flag.className = "stale-flag " + (ageMs >= CRITICAL_MS ? "stale-critical" : "stale-warning");
+  }
+  updateStaleness();
+  setInterval(updateStaleness, 30000);
+
+  // Scale the fixed 1920x1080 design to fit whatever window it's actually
+  // opened in - a laptop browser tab, a smaller preview window, or a real
+  // 1920x1080 TV - so it always renders in full, centered, never clipped
+  // or scrollable.
+  function fitStage(){
+    var stage = document.getElementById("stage");
+    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var x = (window.innerWidth - 1920 * scale) / 2;
+    var y = (window.innerHeight - 1080 * scale) / 2;
+    stage.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
+  }
+  fitStage();
+  window.addEventListener("resize", fitStage);
+</script>
+</body>
+</html>

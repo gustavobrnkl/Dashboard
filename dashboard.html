@@ -1,0 +1,789 @@
+<style>
+  .dash{
+    --page:       #eef1ef;
+    --surface:    #fbfcfb;
+    --surface-2:  #f2f5f3;
+    --ink:        #0c1210;
+    --ink-2:      #51605c;
+    --ink-muted:  #7c8985;
+    --hairline:   #d8ddda;
+    --border:     rgba(12,18,16,0.10);
+    --accent:     #0b6e63;
+    --accent-ink: #ffffff;
+    --accent-wash:#e2efec;
+
+    --series-1:   #2a78d6; /* BRNKL Support */
+    --series-2:   #eb6834; /* Ahoy */
+    --seq:        #2a78d6; /* sequential magnitude bars */
+    --seq-track:  #dde9f8;
+    --good:       #0ca30c;
+    --warning:    #c98500;
+    --critical:   #d03b3b;
+    --neutral-bar:#8b978f;
+
+    color-scheme: light;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    padding: 28px clamp(16px, 4vw, 40px) 60px;
+    box-sizing: border-box;
+    min-height: 100%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .dash{
+      color-scheme: dark;
+      --page:       #0a0d0c;
+      --surface:    #121615;
+      --surface-2:  #171b1a;
+      --ink:        #f2f5f3;
+      --ink-2:      #a9b6b1;
+      --ink-muted:  #7d8a86;
+      --hairline:   #232927;
+      --border:     rgba(255,255,255,0.09);
+      --accent:     #2bb3a0;
+      --accent-ink: #06110f;
+      --accent-wash:#122622;
+
+      --series-1:   #3987e5;
+      --series-2:   #d95926;
+      --seq:        #3987e5;
+      --seq-track:  #1c2733;
+      --good:       #0ca30c;
+      --warning:    #c98500;
+      --critical:   #e66767;
+      --neutral-bar:#5b6663;
+    }
+  }
+  :root[data-theme="dark"] .dash{
+    color-scheme: dark;
+    --page:       #0a0d0c;
+    --surface:    #121615;
+    --surface-2:  #171b1a;
+    --ink:        #f2f5f3;
+    --ink-2:      #a9b6b1;
+    --ink-muted:  #7d8a86;
+    --hairline:   #232927;
+    --border:     rgba(255,255,255,0.09);
+    --accent:     #2bb3a0;
+    --accent-ink: #06110f;
+    --accent-wash:#122622;
+
+    --series-1:   #3987e5;
+    --series-2:   #d95926;
+    --seq:        #3987e5;
+    --seq-track:  #1c2733;
+    --good:       #0ca30c;
+    --warning:    #c98500;
+    --critical:   #e66767;
+    --neutral-bar:#5b6663;
+  }
+  :root[data-theme="light"] .dash{ color-scheme: light; }
+
+  .dash *{ box-sizing: border-box; }
+  .dash ::selection{ background: var(--accent-wash); }
+
+  .dash-inner{ max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap: 16px; flex-wrap: wrap; }
+  .eyebrow{ font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+  .topbar h1{ margin: 4px 0 0; font-size: 24px; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+  .range{ font-size: 12.5px; color: var(--ink-muted); font-variant-numeric: tabular-nums; padding-bottom: 3px; }
+
+  .filterbar{ display:flex; align-items:flex-end; gap: 14px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .field{ display:flex; flex-direction: column; gap: 5px; }
+  .field label{ font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+  .field select, .field input{
+    font: inherit; font-size: 13px; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--hairline); border-radius: 7px; padding: 7px 10px; min-height: 34px;
+  }
+  .field select{ min-width: 150px; }
+  .field.search input{ min-width: 240px; }
+  .field select:focus-visible, .field input:focus-visible, button:focus-visible, th:focus-visible{
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .filterbar .reset{
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: transparent;
+    border: 1px solid var(--hairline); border-radius: 7px; padding: 8px 12px; cursor: pointer; min-height: 34px;
+  }
+  .filterbar .reset:hover{ background: var(--surface-2); color: var(--ink); }
+
+  .kpis{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display:flex; flex-direction:column; gap: 4px; }
+  .kpi .k-label{ font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-muted); }
+  .kpi .k-value{ font-size: 30px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .kpi .k-sub{ font-size: 12px; color: var(--ink-2); }
+
+  .grid{ display:grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .card{ grid-column: span 6; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 18px; display:flex; flex-direction:column; gap: 12px; min-width: 0; }
+  .card.c3{ grid-column: span 3; }
+  .card.c2{ grid-column: span 2; }
+  .card-head h2{ margin:0; font-size: 14.5px; font-weight: 650; }
+  .card-head p{ margin: 2px 0 0; font-size: 12px; color: var(--ink-muted); }
+  .chart-body{ min-height: 0; }
+  .empty-note{ font-size: 12.5px; color: var(--ink-muted); padding: 18px 0; text-align: center; }
+
+  .legend{ display:flex; gap: 16px; flex-wrap: wrap; margin-top: -4px; }
+  .legend-item{ display:flex; align-items:center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+  .legend-item .swatch{ width: 10px; height: 10px; border-radius: 2.5px; flex: none; }
+
+  .hbars{ display:flex; flex-direction:column; gap: 9px; }
+  .hbar-row{ display:grid; grid-template-columns: 128px 1fr 40px; align-items:center; gap: 10px; cursor: default; }
+  .hbar-label{ display:flex; align-items:center; gap: 7px; font-size: 12.5px; color: var(--ink-2); overflow:hidden; white-space:nowrap; text-overflow: ellipsis; }
+  .hbar-label .dot{ width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .hbar-track{ background: var(--seq-track); border-radius: 4px; height: 14px; overflow:hidden; }
+  .hbar-fill{ height: 100%; border-radius: 4px; width: 0; transition: width .5s cubic-bezier(.2,.7,.3,1); }
+  .hbar-row:hover .hbar-fill{ filter: brightness(1.08); }
+  .hbar-value{ font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; font-weight: 560; }
+
+  svg.volchart{ width: 100%; height: auto; display:block; overflow: visible; }
+  .vol-gridline{ stroke: var(--hairline); stroke-width: 1; }
+  .vol-axislabel{ fill: var(--ink-muted); font-size: 9.5px; }
+  .vol-hit{ fill: transparent; }
+  .vol-hit:hover{ fill: var(--surface-2); }
+
+  .tooltip{
+    position: fixed; z-index: 50; pointer-events:none; background: var(--ink); color: var(--page);
+    border-radius: 7px; padding: 7px 10px; font-size: 12px; line-height: 1.4; max-width: 220px;
+    opacity: 0; transform: translateY(2px); transition: opacity .1s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  .tooltip.show{ opacity: 1; }
+  .tooltip .t-value{ font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tooltip .t-row{ display:flex; align-items:center; gap: 6px; }
+  .tooltip .t-key{ width: 8px; height: 2px; border-radius: 1px; flex: none; }
+
+  .table-card{ gap: 10px; }
+  .table-wrap{ overflow-x: auto; border: 1px solid var(--hairline); border-radius: 8px; }
+  table{ width: 100%; border-collapse: collapse; font-size: 12.8px; min-width: 720px; }
+  thead th{
+    text-align: left; font-size: 10.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--ink-muted); background: var(--surface-2); padding: 9px 12px; border-bottom: 1px solid var(--hairline);
+    cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  thead th:hover{ color: var(--ink); }
+  thead th .arrow{ margin-left: 4px; opacity: .6; }
+  tbody td{ padding: 9px 12px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  tbody tr:last-child td{ border-bottom: none; }
+  tbody tr:hover{ background: var(--surface-2); }
+  td.num{ font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  td.subject{ max-width: 260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cust-name{ font-weight: 560; }
+  .cust-email{ color: var(--ink-muted); font-size: 11.8px; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-size: 11px; font-weight: 620; padding: 3px 8px; border-radius: 20px; }
+  .pill .dot{ width:6px; height:6px; border-radius:50%; }
+  .pill-closed{ background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+  .pill-active{ background: color-mix(in srgb, var(--series-1) 14%, transparent); color: var(--series-1); }
+  .pill-pending{ background: color-mix(in srgb, var(--warning) 16%, transparent); color: var(--warning); }
+  .pill-other{ background: var(--surface-2); color: var(--ink-2); }
+  td.tags-cell{ max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted); font-size: 12px; }
+
+  .foot{ font-size: 11.5px; color: var(--ink-muted); text-align: center; padding-top: 6px; }
+
+  @media (max-width: 860px){
+    .kpis{ grid-template-columns: repeat(2, 1fr); }
+    .grid{ grid-template-columns: 1fr; }
+    .card, .card.c3, .card.c2{ grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .hbar-fill{ transition: none; }
+    .tooltip{ transition: none; }
+  }
+</style>
+
+<div class="dash">
+  <div class="dash-inner">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Help Scout &middot; BRNKL Support &amp; Ahoy</div>
+        <h1>Ticket Insights</h1>
+      </div>
+      <div class="range" id="rangeLabel"></div>
+    </header>
+
+    <div class="filterbar">
+      <div class="field">
+        <label for="fMailbox">Mailbox</label>
+        <select id="fMailbox"></select>
+      </div>
+      <div class="field">
+        <label for="fStatus">Status</label>
+        <select id="fStatus"></select>
+      </div>
+      <div class="field search">
+        <label for="fSearch">Search</label>
+        <input id="fSearch" type="text" placeholder="Subject, customer, or email" autocomplete="off" />
+      </div>
+      <button class="reset" id="fReset" type="button">Reset filters</button>
+    </div>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="grid">
+      <div class="card">
+        <div class="card-head">
+          <h2>Ticket volume</h2>
+          <p>Conversations created per day, by mailbox</p>
+        </div>
+        <div class="chart-body" id="chartVolume"></div>
+      </div>
+
+      <div class="card c3">
+        <div class="card-head"><h2>Status mix</h2><p id="statusSub"></p></div>
+        <div class="chart-body" id="chartStatus"></div>
+      </div>
+      <div class="card c3">
+        <div class="card-head"><h2>Resolution outcome</h2><p id="resSub"></p></div>
+        <div class="chart-body" id="chartResolution"></div>
+      </div>
+
+      <div class="card c3">
+        <div class="card-head"><h2>Issue type</h2><p id="issueSub"></p></div>
+        <div class="chart-body" id="chartIssue"></div>
+      </div>
+      <div class="card c3">
+        <div class="card-head"><h2>Product line</h2><p id="productSub"></p></div>
+        <div class="chart-body" id="chartProduct"></div>
+      </div>
+
+      <div class="card c2">
+        <div class="card-head"><h2>Support tier</h2><p id="tierSub"></p></div>
+        <div class="chart-body" id="chartTier"></div>
+      </div>
+      <div class="card c2">
+        <div class="card-head"><h2>Channel</h2><p id="channelSub"></p></div>
+        <div class="chart-body" id="chartChannel"></div>
+      </div>
+      <div class="card c2">
+        <div class="card-head"><h2>Customer type</h2><p id="custSub"></p></div>
+        <div class="chart-body" id="chartCustomer"></div>
+      </div>
+
+      <div class="card c3">
+        <div class="card-head"><h2>Top organizations</h2><p>By customer email domain</p></div>
+        <div class="chart-body" id="chartDomain"></div>
+      </div>
+      <div class="card c3">
+        <div class="card-head"><h2>Team workload</h2><p>Open assigned to each teammate</p></div>
+        <div class="chart-body" id="chartWorkload"></div>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <div class="card-head">
+        <h2>Conversations</h2>
+        <p id="tableCount"></p>
+      </div>
+      <div class="table-wrap">
+        <table id="ticketTable">
+          <thead>
+            <tr>
+              <th data-sort="number" tabindex="0">#<span class="arrow"></span></th>
+              <th data-sort="created_at" tabindex="0">Created<span class="arrow"></span></th>
+              <th data-sort="status" tabindex="0">Status<span class="arrow"></span></th>
+              <th data-sort="subject" tabindex="0">Subject<span class="arrow"></span></th>
+              <th data-sort="customer_name" tabindex="0">Customer<span class="arrow"></span></th>
+              <th data-sort="mailbox" tabindex="0">Mailbox<span class="arrow"></span></th>
+              <th>Tags</th>
+            </tr>
+          </thead>
+          <tbody id="ticketBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">Generated from a Help Scout conversation export &middot; <span id="footCount"></span> conversations in range</footer>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const TICKETS = [{"id":"3414585327","number":5937,"created_at":"2026-08-10T22:10:06Z","status":"active","subject":"Billing Clarification","customer_name":"Gregory Grant","customer_email":"gagrant@me.com","assignee":"","mailbox":"BRNKL Support","tags":["customer-owner","issue-account","product-5g","resolution-fixed","tier-1"]},{"id":"3414582030","number":5936,"created_at":"2026-08-10T22:06:36Z","status":"active","subject":"Device Setup and Troubleshooting","customer_name":"Danny Ascencio-Hall","customer_email":"danny@pelagic-power.com","assignee":"","mailbox":"BRNKL Support","tags":["issue-install","issue-networking","product-black","product-blue","resolution-unresolved"]},{"id":"3414581035","number":5935,"created_at":"2026-08-10T22:05:28Z","status":"active","subject":"Device Setup and Troubleshooting","customer_name":"Ryan Thomas","customer_email":"rthomas@atlantic-me.com","assignee":"","mailbox":"BRNKL Support","tags":["issue-install","product-blue","resolution-fixed"]},{"id":"3414569823","number":5934,"created_at":"2026-08-10T21:53:01Z","status":"active","subject":"Re: Your receipt from Barnacle Systems Inc #2301-2710","customer_name":"Steven Welch","customer_email":"welchsteven@gmail.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3414531641","number":5933,"created_at":"2026-08-10T21:09:57Z","status":"active","subject":"Lost phone. Locked account. Big problem.","customer_name":"Help Scout","customer_email":"editorial@helpscout.com","assignee":"","mailbox":"BRNKL Support","tags":[]},{"id":"3414376906","number":5932,"created_at":"2026-08-10T18:51:08Z","status":"active","subject":"Your shipment has been booked","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3414323020","number":5931,"created_at":"2026-08-10T18:04:57Z","status":"active","subject":"Shipping Inquiry","customer_name":"+19012125000@cloudtalk","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["issue-shipping","product-none"]},{"id":"3414297220","number":5930,"created_at":"2026-08-10T17:42:30Z","status":"active","subject":"Your shipment has been delivered","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3414179710","number":5929,"created_at":"2026-08-10T16:09:52Z","status":"closed","subject":"Account Set Up","customer_name":"Sean Battistoni","customer_email":"sean@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3413667668","number":5927,"created_at":"2026-08-10T07:43:23Z","status":"active","subject":"Barnacle Systems profile update","customer_name":"Nautical Directory","customer_email":"info@nauticaldirectory.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3413312729","number":5926,"created_at":"2026-08-09T19:27:00Z","status":"closed","subject":"is there a support number to call for assistance configuring my BRNKL Blue?","customer_name":"","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["ai-answers","ai-resolved"]},{"id":"3412117458","number":5925,"created_at":"2026-08-07T22:46:35Z","status":"active","subject":"Summer Time Reminder - Marina Safety","customer_name":"Scott Stevenson","customer_email":"scott_stevenson@obmg.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3412053882","number":5924,"created_at":"2026-08-07T21:18:57Z","status":"active","subject":"Your shipment is now in transit","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3411934148","number":5923,"created_at":"2026-08-07T19:08:58Z","status":"closed","subject":"5G Migration","customer_name":"Chad Anderson","customer_email":"chadsm3@comcast.net","assignee":"","mailbox":"BRNKL Support","tags":["channel-email","issue-camera","product-5g","resolution-fixed","tier-2","time-20-45"]},{"id":"3411911314","number":5921,"created_at":"2026-08-07T18:49:30Z","status":"pending","subject":"Camera Setup Process","customer_name":"Timothy Judd","customer_email":"timothy.judd@fairfaxcounty.gov","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-fleet","customer-owner","issue-camera","issue-install","issue-integration","product-black","resolution-fixed","tier-2"]},{"id":"3411676211","number":5920,"created_at":"2026-08-07T15:29:29Z","status":"closed","subject":"Account Set Up","customer_name":"Noa Williamson","customer_email":"nwilliamson@eaglecraft.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3411312862","number":5918,"created_at":"2026-08-07T08:49:26Z","status":"active","subject":"Biggest Maritime Conference in 2027","customer_name":"World Maritime Forum: Copenhagen","customer_email":"info@worldmaritime-forum.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3411579386","number":5919,"created_at":"2026-08-07T08:07:06Z","status":"closed","subject":"Re: BRNKL Wireless dongle issue : bblu-120261802711","customer_name":"Florent Mura","customer_email":"fmura@pochon.com","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-accessory","product-blue","resolution-fixed","rootcause-bug","tier-2"]},{"id":"3411165356","number":5916,"created_at":"2026-08-07T04:16:01Z","status":"closed","subject":"Re: Need Help","customer_name":"Darren Beckwith","customer_email":"darren@brnkl.io","assignee":"","mailbox":"BRNKL Support","tags":[]},{"id":"3410973411","number":5915,"created_at":"2026-08-06T22:35:16Z","status":"active","subject":"Your shipment has been booked","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3410861757","number":5914,"created_at":"2026-08-06T20:22:49Z","status":"closed","subject":"System 3025 kingfisher","customer_name":"","customer_email":"sales@brnkl.io","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3410738155","number":5913,"created_at":"2026-08-06T18:31:19Z","status":"active","subject":"Barnacle Systems: [Reminder] Register your apps and signing keys to meet Android developer verification requirements before Sep 30, 2026","customer_name":"Google Play","customer_email":"googleplay-noreply@google.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3410692488","number":5912,"created_at":"2026-08-06T17:52:15Z","status":"closed","subject":"Customer Support Experience","customer_name":"New Contact +17786974223","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["channel-call","customer-internal","issue-install","product-5g","resolution-no-action","tier-1"]},{"id":"3410634032","number":5911,"created_at":"2026-08-06T17:03:45Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Ryan Gendreau","customer_email":"rgyachtsolutions@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-dealer","issue-camera","issue-connectivity","issue-install","product-blue","product-other","resolution-fixed","tier-1"]},{"id":"3409955446","number":5910,"created_at":"2026-08-06T03:51:46Z","status":"active","subject":"Undeliverable: 56EB Banshee: Shore Power Disconnected","customer_name":"Microsoft Outlook","customer_email":"","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3409665226","number":5909,"created_at":"2026-08-05T20:52:08Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Danny Ascencio-Hall","customer_email":"danny@pelagic-power.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","customer-owner","issue-app","issue-camera","issue-connectivity","issue-install","issue-integration","issue-networking","issue-power","product-black","product-blue","product-other","resolution-fixed","resolution-no-action","resolution-unresolved","tier-1","tier-2","time-0-20"]},{"id":"3409577616","number":5908,"created_at":"2026-08-05T19:25:03Z","status":"closed","subject":"User Experience and Frustration","customer_name":"Marcos","customer_email":"marcos122480@gmail.com","assignee":"","mailbox":"BRNKL Support","tags":["issue-accessory","issue-connectivity","issue-power","product-5g","resolution-no-action"]},{"id":"3409465963","number":5906,"created_at":"2026-08-05T17:46:16Z","status":"closed","subject":"Re: Device Registration","customer_name":"Garrett Beier","customer_email":"gbeier@ppa.gc.ca","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-accessory","product-blue","resolution-fixed","tier-1","time-0-20"]},{"id":"3409448907","number":5905,"created_at":"2026-08-05T17:30:48Z","status":"active","subject":"[BRNKL] New Admin Email Address","customer_name":"Brnkl","customer_email":"no-reply@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3409419975","number":5904,"created_at":"2026-08-05T17:06:07Z","status":"active","subject":"Turn the Comments On","customer_name":"Bc Politics Watch From Bc's Substack","customer_email":"reply+3h01ci&8uis2g&&d49c1c67cba4d35c4fd1559ca8a8eb59a4751c737b723f42098145747a70a7e9@mg1.substack.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3409099772","number":5902,"created_at":"2026-08-05T13:01:10Z","status":"active","subject":"Navtech 26: New Speakers, New Sponsors","customer_name":"Colibri Northwest","customer_email":"peter@colibrinw.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3408679354","number":5901,"created_at":"2026-08-05T02:10:16Z","status":"closed","subject":"System 3025 kingfisher","customer_name":"Matt Wealick","customer_email":"wealick@hotmail.com","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3408468058","number":5899,"created_at":"2026-08-04T21:05:23Z","status":"closed","subject":"Re: Cameras on the Sabre","customer_name":"Elizabeth","customer_email":"elizabethvw@live.ca","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-camera","issue-integration","resolution-escalated"]},{"id":"3408372209","number":5898,"created_at":"2026-08-04T19:30:52Z","status":"closed","subject":"Re: Device Setup and Troubleshooting","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","issue-camera","issue-install","issue-integration","product-blue","resolution-escalated","resolution-fixed","rootcause-onboarding","tier-2"]},{"id":"3408299435","number":5897,"created_at":"2026-08-04T18:24:24Z","status":"closed","subject":"Availability of Support","customer_name":"+18602276931@cloudtalk","customer_email":"","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-dealer","issue-install","issue-integration","product-black","product-blue","resolution-fixed","tier-1"]},{"id":"3408166465","number":5896,"created_at":"2026-08-04T16:30:38Z","status":"closed","subject":"Invitation: Weekly Stand Up @ Weekly from 9:30am to 10am on Monday (PDT) (Barnacle Systems)","customer_name":"Alan Deciantis","customer_email":"alan@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3407901477","number":5895,"created_at":"2026-08-04T13:10:07Z","status":"closed","subject":"BRNKL for a Swan 55 in the Mediterranean","customer_name":"","customer_email":"florian@brnkl.io","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":[]},{"id":"3407843467","number":5894,"created_at":"2026-08-04T12:13:49Z","status":"active","subject":"Voicemail — 19296522465","customer_name":"New Contact 19296522465","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":[]},{"id":"3407710952","number":5892,"created_at":"2026-08-04T09:21:43Z","status":"closed","subject":"BRNKL for a Swan 55 in the Mediterranean","customer_name":"Février Maxime","customer_email":"mfevrier424@gmail.com","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["customer-owner","product-blue","sales"]},{"id":"3407676691","number":5891,"created_at":"2026-08-04T08:33:34Z","status":"closed","subject":"Memetti Superyacht Agency | Yachts for Sale & Company Profile","customer_name":"Salesbroker Memetti Yachting","customer_email":"salesbroker@memettiyachting.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3407380226","number":5890,"created_at":"2026-08-04T00:00:52Z","status":"closed","subject":"BRNKL - Contact - Andrew Farris","customer_name":"Andrew Farris","customer_email":"andrew@pelagic-power.com","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","issue-camera","issue-product question","product-blue","resolution-docs","resolution-fixed","tier-1","time-0-20"]},{"id":"3407138982","number":5889,"created_at":"2026-08-03T19:27:14Z","status":"closed","subject":"Camera Setup Process","customer_name":"Robert Kinney","customer_email":"robert@alcommarine.com","assignee":"","mailbox":"BRNKL Support","tags":["issue-install","product-none","resolution-docs"]},{"id":"3406633692","number":5884,"created_at":"2026-08-03T12:45:40Z","status":"pending","subject":"Re: UrgentA Need help with issue","customer_name":"Elliott Bennett","customer_email":"bennettguerrero@gmail.com","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-account","issue-camera","tier-1"]},{"id":"3404777289","number":5883,"created_at":"2026-08-01T01:30:11Z","status":"closed","subject":"Your shipment has been delivered","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"Dave Bernard","mailbox":"Ahoy","tags":[]},{"id":"3404600914","number":5882,"created_at":"2026-07-31T20:56:49Z","status":"pending","subject":"Re: Garmin camera BRNKL issue","customer_name":"Dave Hayne","customer_email":"dave@haynemarine.com","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["channel-call","channel-email","customer-dealer","issue-camera","issue-networking","product-blue","resolution-fixed","rootcause-onboarding","tier-1","time-0-20"]},{"id":"3404452069","number":5881,"created_at":"2026-07-31T18:17:35Z","status":"active","subject":"Quick question about your technical warranty process","customer_name":"Alex Wood","customer_email":"alexwoodbiz@gmail.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3404436725","number":5880,"created_at":"2026-07-31T18:03:24Z","status":"closed","subject":"Insider: July 2026","customer_name":"Innovate Bc","customer_email":"marketing@innovatebc.ca","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3404400193","number":5879,"created_at":"2026-07-31T17:31:45Z","status":"pending","subject":"Re: Dead 5G","customer_name":"Benjamin Dunbar","customer_email":"Benjamin.dunbar@yorkcounty.gov","assignee":"Florian Besnard","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-connectivity","issue-power","product-5g","resolution-rma","rootcause-hardware","tier-2"]},{"id":"3404240374","number":5877,"created_at":"2026-07-31T15:05:56Z","status":"closed","subject":"Re: Fwd: Mamalilikulla First Nation","customer_name":"Sean Battistoni","customer_email":"sean@brnkl.io","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","issue-integration","resolution-docs","rootcause-feature","tier-2"]},{"id":"3404152668","number":5876,"created_at":"2026-07-31T13:46:34Z","status":"closed","subject":"Mamalilikulla First Nation","customer_name":"Sean Battistoni","customer_email":"sean@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3403733485","number":5874,"created_at":"2026-07-31T02:52:32Z","status":"pending","subject":"Re: Randy Leigh - myjustbecause","customer_name":"Randy Leigh","customer_email":"mareterra@shaw.ca","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-accessory","product-5g","tier-1","time-0-20"]},{"id":"3403652585","number":5873,"created_at":"2026-07-31T00:27:04Z","status":"closed","subject":"Your shipment is now in transit","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3403498865","number":5871,"created_at":"2026-07-30T20:51:43Z","status":"closed","subject":"Owner Permissions","customer_name":"Steve Mury","customer_email":"smury@atlantic-me.com","assignee":"Steve Davis","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer-ame","issue-account","product-blue","resolution-fixed","time-0-20"]},{"id":"3403450695","number":5870,"created_at":"2026-07-30T20:02:31Z","status":"closed","subject":"Re: Changing battery","customer_name":"Elliott Bennett","customer_email":"bennettguerrero@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-accessory","product-5g","tier-1","time-0-20"]},{"id":"3403347728","number":5868,"created_at":"2026-07-30T18:21:39Z","status":"closed","subject":"Your shipment has been delivered","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3402331650","number":5865,"created_at":"2026-07-29T21:10:51Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Justin","customer_email":"","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-connectivity","issue-install","product-black","resolution-fixed","tier-1"]},{"id":"3401905968","number":5863,"created_at":"2026-07-29T15:18:13Z","status":"closed","subject":"Re: VSC55053 Bodacious","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Christian Redditt","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","customer-dealer-ame","issue-hardware","issue-rma","product-blue","resolution-rma","rootcause-hardware"]},{"id":"3401877967","number":5862,"created_at":"2026-07-29T15:00:03Z","status":"closed","subject":"Mamalilikulla First Nation","customer_name":"Tyrone Monteith","customer_email":"tyronem@oceanpacificmarine.com","assignee":"Sean Battistoni","mailbox":"Ahoy","tags":[]},{"id":"3401870990","number":5861,"created_at":"2026-07-29T14:54:44Z","status":"pending","subject":"RE: Garmin GMS10 Yellow wire staying grounded.","customer_name":"John Hanzl","customer_email":"jhanzl65@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-accessory","issue-integration","rootcause-hardware","tier-2"]},{"id":"3401768323","number":5860,"created_at":"2026-07-29T13:40:51Z","status":"closed","subject":"Your shipment has been delivered","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"Dave Bernard","mailbox":"Ahoy","tags":[]},{"id":"3401129496","number":5858,"created_at":"2026-07-28T22:20:32Z","status":"closed","subject":"Your shipment has been booked","customer_name":"Freightcom","customer_email":"info@freightcom.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3401116047","number":5857,"created_at":"2026-07-28T22:05:21Z","status":"closed","subject":"Wireless Motion Sensor","customer_name":"Denise","customer_email":"electronics@harbourchandler.ca","assignee":"Sales","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","issue-sales","product-other"]},{"id":"3400955618","number":5854,"created_at":"2026-07-28T19:40:48Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Josh","customer_email":"josh@marinetechmiami.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-accessory","issue-connectivity","issue-install","product-other","resolution-unresolved","tier-2"]},{"id":"3400450594","number":5850,"created_at":"2026-07-28T13:42:29Z","status":"closed","subject":"Billing Clarification","customer_name":"Andrew Waters","customer_email":"watersa@yorkcounty.gov","assignee":"","mailbox":"BRNKL Support","tags":["channel-call","channel-email","customer-owner","issue-billing","product-5g","resolution-fixed","tier-2","time-0-20"]},{"id":"3400015853","number":5849,"created_at":"2026-07-28T03:34:32Z","status":"pending","subject":"Fw: ** NMEA device not showing data **","customer_name":"Justin Graham","customer_email":"justin.graham@soundstar.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-integration","issue-networking","product-none","tier-2"]},{"id":"3400013991","number":5848,"created_at":"2026-07-28T03:31:29Z","status":"closed","subject":"Re: ** NMEA device not showing data **","customer_name":"Justin Graham","customer_email":"justin.graham@soundstar.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-power","product-blue","tier-1"]},{"id":"3399787228","number":5846,"created_at":"2026-07-27T22:31:01Z","status":"closed","subject":"Uline Shipping Confirmation - Order 55463252 Shipped","customer_name":"Uline Customer Service","customer_email":"customer.service@uline.ca","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3399746557","number":5845,"created_at":"2026-07-27T21:47:09Z","status":"closed","subject":"Cloudloop One-Time Password","customer_name":"","customer_email":"no-reply@cloudloop.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3399735136","number":5844,"created_at":"2026-07-27T21:34:51Z","status":"closed","subject":"Re: Cam Engine Report report, July 27, 2026","customer_name":"Steve Davis","customer_email":"sdavis@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3399518052","number":5842,"created_at":"2026-07-27T18:32:47Z","status":"pending","subject":"Video download question","customer_name":"John Grady","customer_email":"jgrady@atlantic-me.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["ai-drafts","channel-email","customer-dealer","customer-dealer-ame","issue-camera","product-blue","tier-1"]},{"id":"3399470730","number":5841,"created_at":"2026-07-27T17:56:55Z","status":"closed","subject":"ULINE ORDER CONFIRMATION # 55463252","customer_name":"Carmanah Gleeson","customer_email":"accounting@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3399449972","number":5839,"created_at":"2026-07-27T17:40:25Z","status":"closed","subject":"Data Flow Issues","customer_name":"Tom Liptrot","customer_email":"thomasliptrotsc@gmail.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-account","issue-connectivity","product-5g","resolution-fixed"]},{"id":"3399351635","number":5838,"created_at":"2026-07-27T16:28:44Z","status":"pending","subject":"Re: Fwd: WAVS Boat NFWF Demo 7/28/26, 9-11AM","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-fleet","customer-fleet-usgov","issue-account","issue-integration","product-other","resolution-unresolved","tier-2"]},{"id":"3399280073","number":5837,"created_at":"2026-07-27T15:41:55Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Danny Ascencio-Hall","customer_email":"danny@pelagic-power.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-call","customer-dealer","issue-app","issue-connectivity","issue-networking","product-blue","resolution-fixed","tier-2"]},{"id":"3398460218","number":5834,"created_at":"2026-07-26T19:02:32Z","status":"closed","subject":"Re: Vessel: Mon Amie, Owner: Michael Scott Clark","customer_name":"Michael Scott Clark","customer_email":"mscottc1979@gmail.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-cancellation","product-none","resolution-fixed","tier-1"]},{"id":"3398459985","number":5833,"created_at":"2026-07-26T19:02:08Z","status":"closed","subject":"BRNKL - Contact - Michael Scott Clark","customer_name":"Michael Scott Clark","customer_email":"mscottc1979@gmail.com","assignee":"Cassidy Quaite","mailbox":"Ahoy","tags":[]},{"id":"3397586625","number":5832,"created_at":"2026-07-25T10:58:24Z","status":"closed","subject":"Applying for unpaid work to gain experience","customer_name":"Ridha Benlakehal","customer_email":"benlakehalridha6@gmail.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3397302534","number":5829,"created_at":"2026-07-24T23:09:20Z","status":"pending","subject":"BRNKL - Contact - Ken Shields","customer_name":"Ken Shields","customer_email":"ken@tidaljet.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-connectivity","product-other","tier-1"]},{"id":"3397209658","number":5825,"created_at":"2026-07-24T20:50:59Z","status":"closed","subject":"Re: Boat Monitoring","customer_name":"Sean Bolongaro","customer_email":"spagbol1969@hotmail.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["channel-call","channel-email","customer-owner","issue-account","issue-cancellation","issue-sales","product-5g","product-blue","resolution-escalated","resolution-unresolved","sales"]},{"id":"3396873342","number":5816,"created_at":"2026-07-24T15:14:41Z","status":"closed","subject":"Blue connectivity","customer_name":"Frank Lewis","customer_email":"nauticalblisscharters@gmail.com","assignee":"","mailbox":"BRNKL Support","tags":["customer-owner","issue-connectivity","issue-networking","product-blue","resolution-no-action","tier-1"]},{"id":"3396207550","number":5810,"created_at":"2026-07-23T22:21:08Z","status":"closed","subject":"BRNKL - Contact - Mason Kaiser","customer_name":"Sean Battistoni","customer_email":"sean@brnkl.io","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3396207224","number":5809,"created_at":"2026-07-23T22:20:45Z","status":"closed","subject":"BRNKL - Contact - Rachel Motamedi","customer_name":"Alan Deciantis","customer_email":"alan@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3396080132","number":5806,"created_at":"2026-07-23T19:54:48Z","status":"closed","subject":"Input/Output Configuration","customer_name":"Clinton Herrin","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["customer-dealer","issue-install","resolution-fixed","rootcause-onboarding","tier-2","time-20-45"]},{"id":"3395935066","number":5799,"created_at":"2026-07-23T17:36:23Z","status":"closed","subject":"Billing Clarification","customer_name":"Colin Maness","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["customer-dealer","issue-billing","product-black","resolution-fixed","tier-1","time-0-20"]},{"id":"3395797451","number":5798,"created_at":"2026-07-23T15:39:34Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Andrew Farris","customer_email":"andrew@pelagic-power.com","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["customer-dealer","issue-camera","issue-connectivity","issue-networking","product-blue","resolution-fixed","resolution-unresolved","tier-2","time-20-45"]},{"id":"3395179569","number":5795,"created_at":"2026-07-23T01:53:42Z","status":"closed","subject":"Re: BRNKL - Contact - Max Ciccarelli","customer_name":"Max Ciccarelli","customer_email":"maxciccarelli@gmail.com","assignee":"Dave Bernard","mailbox":"BRNKL Support","tags":["ai-drafts","customer-owner","issue-cancellation","issue-connectivity","product-5g","resolution-fixed","rootcause-onboarding","tier-2","time-0-20"]},{"id":"3393854152","number":5789,"created_at":"2026-07-21T22:13:07Z","status":"closed","subject":"[Action required] Your app is affected by Google Play's target API level requirements","customer_name":"Stephen Palmer","customer_email":"steve@brnkl.io","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3393820359","number":5788,"created_at":"2026-07-21T21:31:17Z","status":"closed","subject":"[Action required] Your app is affected by Google Play's target API level requirements","customer_name":"Google Play Support","customer_email":"no-reply-googleplay-developer@google.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3393538636","number":5779,"created_at":"2026-07-21T17:12:07Z","status":"closed","subject":"Password Reset","customer_name":"Chris Wagner","customer_email":"christopher.wagner@dfo-mpo.gc.ca","assignee":"Cassidy Quaite","mailbox":"BRNKL Support","tags":["customer-fleet","issue-account","issue-app","resolution-fixed","tier-3"]},{"id":"3393461364","number":5777,"created_at":"2026-07-21T16:10:16Z","status":"closed","subject":"Device Setup and Troubleshooting","customer_name":"Chris Sullivan","customer_email":"csullivan@navtronics.com","assignee":"","mailbox":"BRNKL Support","tags":["customer-dealer","issue-account","issue-app","product-blue","resolution-fixed","tier-2","time-0-20"]},{"id":"3394550960","number":5790,"created_at":"2026-07-21T14:42:34Z","status":"closed","subject":"Re: BRNKL Black and BRNKL Blue Interfaces","customer_name":"Stan Ferguson","customer_email":"stanley.ferguson@amrize.com","assignee":"Dave Bernard","mailbox":"BRNKL Support","tags":["ai-drafts","customer-fleet","issue-product question","product-blue","resolution-no-action","sales","tier-1","time-20-45"]},{"id":"3392403554","number":5764,"created_at":"2026-07-20T18:22:11Z","status":"closed","subject":"Blue Install","customer_name":"Kyle Mathis","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["customer-dealer","customer-dealer-ame","issue-install","issue-product question","product-blue","resolution-no-action","tier-1","time-0-20"]},{"id":"3392062396","number":5758,"created_at":"2026-07-20T13:48:11Z","status":"pending","subject":"Re: M26A0240 - DFO RHIB","customer_name":"Alexandre Lavoie","customer_email":"alexandre.lavoie@bst-tsb.gc.ca","assignee":"Dave Bernard","mailbox":"BRNKL Support","tags":["channel-email","customer-fleet","customer-fleet-dfo","issue-connectivity","product-black","resolution-no-action","tier-2","time-0-20"]},{"id":"3391409974","number":5756,"created_at":"2026-07-19T18:33:26Z","status":"closed","subject":"BRNKL Not turning on","customer_name":"Alex Firman","customer_email":"captain.myfreya@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-connectivity","issue-power","product-5g","resolution-unresolved"]},{"id":"3391407617","number":5755,"created_at":"2026-07-19T18:28:00Z","status":"closed","subject":"My satellite wont connect","customer_name":"","customer_email":"","assignee":"","mailbox":"BRNKL Support","tags":["ai-answers","ai-resolved"]},{"id":"3390824572","number":5753,"created_at":"2026-07-18T17:34:37Z","status":"closed","subject":"Re: 5G offline","customer_name":"Glenn Wadden","customer_email":"agwadden@gmail.com","assignee":"Dave Bernard","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-connectivity","product-5g","resolution-unresolved","tier-2","time-0-20"]},{"id":"3389063055","number":5736,"created_at":"2026-07-16T19:39:12Z","status":"closed","subject":"Re: BRNKL - Contact - Chad Rinehart","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3389060001","number":5735,"created_at":"2026-07-16T19:35:55Z","status":"closed","subject":"Re: BRNKL - Contact - Jeffery Runyon","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3389058543","number":5734,"created_at":"2026-07-16T19:34:31Z","status":"closed","subject":"Re: Project with BRNKL Blue","customer_name":"Christian Redditt","customer_email":"christian@brnkl.io","assignee":"Sales","mailbox":"Ahoy","tags":[]},{"id":"3388956575","number":5730,"created_at":"2026-07-16T17:29:02Z","status":"closed","subject":"5G Offline","customer_name":"Tim Currier","customer_email":"tcurrier@glenairnw.com","assignee":"","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-connectivity","product-5g","resolution-no-action","tier-2","time-0-20"]},{"id":"3388819119","number":5724,"created_at":"2026-07-16T15:59:02Z","status":"closed","subject":"Simrad Network Issues","customer_name":"Joshua Winston","customer_email":"jwinstonmarine@gmail.com","assignee":"Dave Bernard","mailbox":"BRNKL Support","tags":["channel-call","customer-dealer","issue-networking","no-response","product-blue","resolution-unresolved","tier-2","time-20-45"]},{"id":"3387887668","number":5715,"created_at":"2026-07-15T19:46:51Z","status":"closed","subject":"Re: Question - BRNKL Blue","customer_name":"Jeremy Croxton","customer_email":"jeremy@oefla.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-dealer","issue-camera","issue-integration","product-blue","resolution-fixed","rootcause-hardware","tier-2"]},{"id":"3387799897","number":5714,"created_at":"2026-07-15T18:21:19Z","status":"closed","subject":"BRNKL - Contact - Rachel Motamedi","customer_name":"","customer_email":"motamedirachel@gmail.com","assignee":"","mailbox":"Ahoy","tags":[]},{"id":"3385466570","number":5690,"created_at":"2026-07-13T21:21:53Z","status":"closed","subject":"Questions about BRNKL Power","customer_name":"Dominique Roberge Roberge","customer_email":"domandmarcela@rogers.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-call","customer-owner","issue-power","product-5g","resolution-no-action","tier-1","time-0-20"]},{"id":"3385192858","number":5683,"created_at":"2026-07-13T17:09:16Z","status":"closed","subject":"Paladain Security - Asking about Custom Email Notifications","customer_name":"Brandon Litterscheidt","customer_email":"blitterscheidt@paladinsecurity.com","assignee":"","mailbox":"BRNKL Support","tags":["customer-dealer","issue-integration","product-black","resolution-unresolved","tier-1"]},{"id":"3385134244","number":5681,"created_at":"2026-07-13T16:13:23Z","status":"closed","subject":"Re: Change ownership","customer_name":"Tom Lensis","customer_email":"tom.lensis@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-owner","issue-account","product-5g","resolution-fixed","tier-1"]},{"id":"3385102835","number":5679,"created_at":"2026-07-13T15:58:13Z","status":"pending","subject":"Re: Fwd: Boat Offline","customer_name":"Sean Battistoni","customer_email":"sean@brnkl.io","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-owner","issue-connectivity","product-5g","tier-1","time-0-20"]},{"id":"3384966448","number":5678,"created_at":"2026-07-13T14:19:11Z","status":"closed","subject":"Re: FW: Seaquan CZone File","customer_name":"Marlin Kates","customer_email":"marlin@rocksolidys.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-integration","product-blue","resolution-docs","tier-3","time-0-20"]},{"id":"3384675089","number":5676,"created_at":"2026-07-13T09:05:47Z","status":"closed","subject":"Geofence","customer_name":"Aidan Grimshaw","customer_email":"aidan@portfield.co.uk","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["customer-owner","issue-install","product-5g","resolution-no-action","tier-1","time-20-45"]},{"id":"3383862524","number":5673,"created_at":"2026-07-12T00:33:11Z","status":"closed","subject":"Feature Request","customer_name":"Dan & Kendra Campbell","customer_email":"svrtherapy@gmail.com","assignee":"Darren Beckwith","mailbox":"BRNKL Support","tags":["channel-email","customer-owner","issue-app","product-5g","resolution-no-action","rootcause-feature","time-0-20"]}];
+
+</script>
+<script>
+(function(){
+  "use strict";
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var tooltipEl = document.getElementById("tooltip");
+
+  function el(tag, props, children){
+    var e = document.createElement(tag);
+    props = props || {};
+    for (var k in props){
+      if (!props.hasOwnProperty(k)) continue;
+      var v = props[k];
+      if (k === "class") e.className = v;
+      else if (k === "style") { for (var s in v) e.style[s] = v[s]; }
+      else if (k.indexOf("data-") === 0) e.dataset[k.slice(5)] = v;
+      else e.setAttribute(k, v);
+    }
+    (children || []).forEach(function(c){
+      if (c === null || c === undefined) return;
+      e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+
+  function svgEl(tag, attrs){
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs){ if (attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+
+  function clear(node){ while (node.firstChild) node.removeChild(node.firstChild); }
+
+  function fmtInt(n){ return n.toLocaleString("en-US"); }
+  function fmtPct(n){ return (Math.round(n * 10) / 10).toString().replace(/\.0$/, "") + "%"; }
+  function fmtShortDate(iso){
+    var d = new Date(iso);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+  function dayKey(iso){ return iso.slice(0, 10); }
+
+  // ---------- tag helpers ----------
+  function tagValuesFor(ticket, prefix){
+    var out = [];
+    (ticket.tags || []).forEach(function(t){
+      if (t.indexOf(prefix + "-") === 0) out.push(t.slice(prefix.length + 1));
+    });
+    return out;
+  }
+
+  function titleCaseWord(w){
+    return w.split(" ").map(function(part){
+      return part.length ? part[0].toUpperCase() + part.slice(1) : part;
+    }).join(" ");
+  }
+  function humanizeTagValue(v){
+    return titleCaseWord(v.replace(/-/g, " "));
+  }
+
+  function categoryBreakdown(data, prefix, opts){
+    opts = opts || {};
+    var topN = opts.topN || 8;
+    var counts = {};
+    var taggedTickets = 0;
+    data.forEach(function(t){
+      var vals = tagValuesFor(t, prefix);
+      if (vals.length) taggedTickets++;
+      vals.forEach(function(v){ counts[v] = (counts[v] || 0) + 1; });
+    });
+    var rows = Object.keys(counts).map(function(k){ return { key: k, label: humanizeTagValue(k), value: counts[k] }; });
+    rows.sort(function(a, b){ return b.value - a.value; });
+    if (rows.length > topN){
+      var head = rows.slice(0, topN - 1);
+      var tail = rows.slice(topN - 1);
+      var otherSum = tail.reduce(function(s, r){ return s + r.value; }, 0);
+      head.push({ key: "__other", label: "Other", value: otherSum });
+      rows = head;
+    }
+    return { rows: rows, taggedTickets: taggedTickets, total: data.length };
+  }
+
+  // ---------- tooltip ----------
+  var tipHideTimer = null;
+  function showTooltip(x, y, rows){
+    clear(tooltipEl);
+    rows.forEach(function(r){
+      var line = el("div", { class: "t-row" }, [
+        r.color ? el("span", { class: "t-key", style: { background: r.color } }) : null,
+        el("span", { class: "t-value" }, [r.value]),
+        el("span", {}, [" " + r.label])
+      ]);
+      tooltipEl.appendChild(line);
+    });
+    tooltipEl.style.left = (x + 14) + "px";
+    tooltipEl.style.top = (y + 14) + "px";
+    tooltipEl.classList.add("show");
+  }
+  function hideTooltip(){ tooltipEl.classList.remove("show"); }
+
+  // ---------- horizontal bar chart ----------
+  function renderHBars(containerId, breakdown, opts){
+    opts = opts || {};
+    var container = document.getElementById(containerId);
+    clear(container);
+    var rows = breakdown.rows;
+    if (!rows.length){
+      container.appendChild(el("div", { class: "empty-note" }, ["No tagged conversations in this range"]));
+      return;
+    }
+    var max = Math.max.apply(null, rows.map(function(r){ return r.value; }));
+    var wrap = el("div", { class: "hbars" });
+    rows.forEach(function(r){
+      var pct = max ? (r.value / max) * 100 : 0;
+      var color = opts.colorFor ? opts.colorFor(r.key) : "var(--seq)";
+      var labelChildren = [];
+      if (opts.semantic) labelChildren.push(el("span", { class: "dot", style: { background: color } }));
+      labelChildren.push(el("span", {}, [r.label]));
+      var row = el("div", { class: "hbar-row" }, [
+        el("div", { class: "hbar-label", title: r.label }, labelChildren),
+        el("div", { class: "hbar-track" }, [
+          el("div", { class: "hbar-fill", style: { background: color } })
+        ]),
+        el("div", { class: "hbar-value" }, [fmtInt(r.value)])
+      ]);
+      row._tipData = { label: r.label, value: r.value, pct: breakdown.taggedTickets ? (r.value / breakdown.taggedTickets) * 100 : 0, color: color };
+      wrap.appendChild(row);
+      requestAnimationFrame(function(){
+        row.querySelector(".hbar-fill").style.width = pct + "%";
+      });
+    });
+    wrap.addEventListener("pointermove", function(e){
+      var row = e.target.closest ? e.target.closest(".hbar-row") : null;
+      if (!row || !row._tipData) return hideTooltip();
+      var d = row._tipData;
+      showTooltip(e.clientX, e.clientY, [{ color: d.color, value: fmtInt(d.value), label: "of tagged \u00b7 " + fmtPct(d.pct) }]);
+    });
+    wrap.addEventListener("pointerleave", hideTooltip);
+    container.appendChild(wrap);
+  }
+
+  // ---------- status colors ----------
+  function statusColor(status){
+    if (status === "closed") return "var(--good)";
+    if (status === "pending") return "var(--warning)";
+    if (status === "active") return "var(--series-1)";
+    return "var(--neutral-bar)";
+  }
+  function statusLabel(status){
+    return status ? titleCaseWord(status) : "Unknown";
+  }
+
+  function resolutionColor(key){
+    if (key === "fixed") return "var(--good)";
+    if (key === "unresolved") return "var(--critical)";
+    if (key === "no-action") return "var(--warning)";
+    return "var(--neutral-bar)";
+  }
+
+  // ---------- volume chart ----------
+  function renderVolumeChart(containerId, data, allDaysRange){
+    var container = document.getElementById(containerId);
+    clear(container);
+
+    var byDay = {};
+    data.forEach(function(t){
+      var k = dayKey(t.created_at);
+      if (!byDay[k]) byDay[k] = { a: 0, b: 0 };
+      if (t.mailbox === "BRNKL Support") byDay[k].a++;
+      else byDay[k].b++;
+    });
+
+    var days = allDaysRange;
+    var maxTotal = 0;
+    days.forEach(function(d){
+      var c = byDay[d] || { a: 0, b: 0 };
+      maxTotal = Math.max(maxTotal, c.a + c.b);
+    });
+    if (maxTotal === 0){
+      container.appendChild(el("div", { class: "empty-note" }, ["No conversations in this range"]));
+      return;
+    }
+    var niceMax = Math.max(4, Math.ceil(maxTotal / 4) * 4);
+
+    var W = 1000, H = 220, padL = 28, padR = 6, padT = 10, padB = 26;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var n = days.length;
+    var band = plotW / n;
+    var barW = Math.max(2, Math.min(22, band - 4));
+
+    var svg = svgEl("svg", { class: "volchart", viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
+
+    [0, 0.5, 1].forEach(function(f){
+      var y = padT + plotH * (1 - f);
+      svg.appendChild(svgEl("line", { class: "vol-gridline", x1: padL, x2: W - padR, y1: y, y2: y }));
+      var t = svgEl("text", { class: "vol-axislabel", x: 2, y: y + 3 });
+      t.textContent = Math.round(niceMax * f);
+      svg.appendChild(t);
+    });
+
+    var GAP = 2;
+    days.forEach(function(d, i){
+      var c = byDay[d] || { a: 0, b: 0 };
+      var cx = padL + band * i + band / 2;
+      var hA = (c.a / niceMax) * plotH;
+      var hB = (c.b / niceMax) * plotH;
+      var baseY = padT + plotH;
+
+      var hit = svgEl("rect", {
+        class: "vol-hit", x: padL + band * i, y: padT, width: band, height: plotH
+      });
+      hit._tip = { date: d, a: c.a, b: c.b };
+      svg.appendChild(hit);
+
+      if (c.a > 0){
+        svg.appendChild(svgEl("rect", {
+          x: cx - barW / 2, y: baseY - hA, width: barW, height: Math.max(0, hA - (c.b > 0 ? GAP / 2 : 0)),
+          fill: "var(--series-1)"
+        }));
+      }
+      if (c.b > 0){
+        var topH = Math.max(1, hB - (c.a > 0 ? GAP / 2 : 0));
+        var r = svgEl("rect", {
+          x: cx - barW / 2, y: baseY - hA - hB, width: barW, height: topH,
+          fill: "var(--series-2)", rx: 4
+        });
+        svg.appendChild(r);
+      }
+
+      if (i % 4 === 0 || i === n - 1){
+        var lbl = svgEl("text", { class: "vol-axislabel", x: cx, y: H - 6, "text-anchor": "middle" });
+        lbl.textContent = fmtShortDate(d + "T00:00:00Z");
+        svg.appendChild(lbl);
+      }
+    });
+
+    svg.addEventListener("pointermove", function(e){
+      var target = e.target;
+      while (target && target !== svg && !target._tip) target = target.parentNode;
+      if (!target || !target._tip) return hideTooltip();
+      var d = target._tip;
+      var rows = [];
+      if (d.a) rows.push({ color: "var(--series-1)", value: fmtInt(d.a), label: "BRNKL Support" });
+      if (d.b) rows.push({ color: "var(--series-2)", value: fmtInt(d.b), label: "Ahoy" });
+      if (!rows.length) rows.push({ value: "0", label: "conversations" });
+      rows.unshift({ value: fmtShortDate(d.date + "T00:00:00Z"), label: "" });
+      showTooltip(e.clientX, e.clientY, rows);
+    });
+    svg.addEventListener("pointerleave", hideTooltip);
+
+    container.appendChild(svg);
+    container.appendChild(el("div", { class: "legend" }, [
+      el("div", { class: "legend-item" }, [el("span", { class: "swatch", style: { background: "var(--series-1)" } }), el("span", {}, ["BRNKL Support"])]),
+      el("div", { class: "legend-item" }, [el("span", { class: "swatch", style: { background: "var(--series-2)" } }), el("span", {}, ["Ahoy"])])
+    ]));
+  }
+
+  // ---------- table ----------
+  var sortState = { key: "created_at", dir: -1 };
+
+  function statusPill(status){
+    var cls = status === "closed" ? "pill-closed" : status === "active" ? "pill-active" : status === "pending" ? "pill-pending" : "pill-other";
+    return el("span", { class: "pill " + cls }, [el("span", { class: "dot", style: { background: "currentColor" } }), statusLabel(status)]);
+  }
+
+  function renderTable(data){
+    var body = document.getElementById("ticketBody");
+    clear(body);
+    var rows = data.slice();
+    rows.sort(function(x, y){
+      var ka = x[sortState.key], kb = y[sortState.key];
+      if (sortState.key === "number") { ka = ka || 0; kb = kb || 0; }
+      if (ka < kb) return -1 * sortState.dir;
+      if (ka > kb) return 1 * sortState.dir;
+      return 0;
+    });
+
+    rows.forEach(function(t){
+      var tagsText = (t.tags || []).join(", ");
+      var tagsCell = el("td", { class: "tags-cell", title: tagsText }, [tagsText || "\u2014"]);
+
+      var custCell = el("td", {}, [
+        el("div", { class: "cust-name" }, [t.customer_name || "\u2014"]),
+        t.customer_email ? el("div", { class: "cust-email" }, [t.customer_email]) : null
+      ]);
+
+      var tr = el("tr", {}, [
+        el("td", { class: "num" }, [t.number != null ? String(t.number) : "\u2014"]),
+        el("td", { class: "num" }, [fmtShortDate(t.created_at)]),
+        el("td", {}, [statusPill(t.status)]),
+        el("td", { class: "subject", title: t.subject || "" }, [t.subject || "(no subject)"]),
+        custCell,
+        el("td", {}, [t.mailbox || "\u2014"]),
+        tagsCell
+      ]);
+      body.appendChild(tr);
+    });
+
+    document.getElementById("tableCount").textContent = fmtInt(data.length) + " shown";
+    document.getElementById("footCount").textContent = fmtInt(data.length);
+
+    document.querySelectorAll("#ticketTable thead th[data-sort]").forEach(function(th){
+      var arrow = th.querySelector(".arrow");
+      arrow.textContent = th.dataset.sort === sortState.key ? (sortState.dir === 1 ? "\u2191" : "\u2193") : "";
+    });
+  }
+
+  // ---------- KPIs ----------
+  function renderKPIs(data, spanDays){
+    var container = document.getElementById("kpis");
+    clear(container);
+    var total = data.length;
+    var open = data.filter(function(t){ return t.status === "active" || t.status === "pending"; }).length;
+    var closed = data.filter(function(t){ return t.status === "closed"; }).length;
+    var closedRate = total ? (closed / total) * 100 : 0;
+    var perDay = spanDays ? total / spanDays : 0;
+
+    var tiles = [
+      { label: "Total conversations", value: fmtInt(total), sub: spanDays ? ("over " + spanDays + " days") : "" },
+      { label: "Open now", value: fmtInt(open), sub: "active + pending" },
+      { label: "Closed rate", value: total ? fmtPct(closedRate) : "\u2014", sub: fmtInt(closed) + " closed" },
+      { label: "Avg per day", value: perDay ? (Math.round(perDay * 10) / 10).toString() : "\u2014", sub: "across full range" }
+    ];
+    tiles.forEach(function(t){
+      container.appendChild(el("div", { class: "kpi" }, [
+        el("div", { class: "k-label" }, [t.label]),
+        el("div", { class: "k-value" }, [t.value]),
+        el("div", { class: "k-sub" }, [t.sub])
+      ]));
+    });
+  }
+
+  // ---------- main ----------
+  var allDays = (function(){
+    var min = null, max = null;
+    TICKETS.forEach(function(t){
+      var k = dayKey(t.created_at);
+      if (min === null || k < min) min = k;
+      if (max === null || k > max) max = k;
+    });
+    var days = [];
+    if (min && max){
+      var cur = new Date(min + "T00:00:00Z");
+      var end = new Date(max + "T00:00:00Z");
+      while (cur <= end){
+        days.push(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+    }
+    return { days: days, min: min, max: max };
+  })();
+
+  document.getElementById("rangeLabel").textContent = allDays.min
+    ? (fmtShortDate(allDays.min + "T00:00:00Z") + " \u2013 " + fmtShortDate(allDays.max + "T00:00:00Z"))
+    : "";
+
+  var mailboxSelect = document.getElementById("fMailbox");
+  var statusSelect = document.getElementById("fStatus");
+  var searchInput = document.getElementById("fSearch");
+
+  var mailboxes = Array.from(new Set(TICKETS.map(function(t){ return t.mailbox; }))).sort();
+  var statuses = Array.from(new Set(TICKETS.map(function(t){ return t.status; }))).sort();
+
+  mailboxSelect.appendChild(el("option", { value: "" }, ["All mailboxes"]));
+  mailboxes.forEach(function(m){ mailboxSelect.appendChild(el("option", { value: m }, [m])); });
+  statusSelect.appendChild(el("option", { value: "" }, ["All statuses"]));
+  statuses.forEach(function(s){ statusSelect.appendChild(el("option", { value: s }, [statusLabel(s)])); });
+
+  function currentFilters(){
+    return { mailbox: mailboxSelect.value, status: statusSelect.value, search: searchInput.value.trim().toLowerCase() };
+  }
+
+  function applyFilters(){
+    var f = currentFilters();
+    return TICKETS.filter(function(t){
+      if (f.mailbox && t.mailbox !== f.mailbox) return false;
+      if (f.status && t.status !== f.status) return false;
+      if (f.search){
+        var hay = ((t.subject || "") + " " + (t.customer_name || "") + " " + (t.customer_email || "")).toLowerCase();
+        if (hay.indexOf(f.search) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function render(){
+    var data = applyFilters();
+    renderKPIs(data, allDays.days.length);
+    renderVolumeChart("chartVolume", data, allDays.days);
+
+    var statusBreakdown = (function(){
+      var counts = {};
+      data.forEach(function(t){ counts[t.status] = (counts[t.status] || 0) + 1; });
+      var rows = Object.keys(counts).map(function(k){ return { key: k, label: statusLabel(k), value: counts[k] }; });
+      rows.sort(function(a, b){ return b.value - a.value; });
+      return { rows: rows, taggedTickets: data.length, total: data.length };
+    })();
+    renderHBars("chartStatus", statusBreakdown, { semantic: true, colorFor: statusColor });
+    document.getElementById("statusSub").textContent = fmtInt(data.length) + " conversations";
+
+    var resolution = categoryBreakdown(data, "resolution", { topN: 6 });
+    renderHBars("chartResolution", resolution, { semantic: true, colorFor: resolutionColor });
+    document.getElementById("resSub").textContent = resolution.taggedTickets + " of " + resolution.total + " tagged";
+
+    var issue = categoryBreakdown(data, "issue", { topN: 8 });
+    renderHBars("chartIssue", issue);
+    document.getElementById("issueSub").textContent = issue.taggedTickets + " of " + issue.total + " tagged";
+
+    var product = categoryBreakdown(data, "product", { topN: 6 });
+    renderHBars("chartProduct", product);
+    document.getElementById("productSub").textContent = product.taggedTickets + " of " + product.total + " tagged";
+
+    var tier = categoryBreakdown(data, "tier", { topN: 4 });
+    renderHBars("chartTier", tier);
+    document.getElementById("tierSub").textContent = tier.taggedTickets + " of " + tier.total + " tagged";
+
+    var channel = categoryBreakdown(data, "channel", { topN: 4 });
+    renderHBars("chartChannel", channel);
+    document.getElementById("channelSub").textContent = channel.taggedTickets + " of " + channel.total + " tagged";
+
+    var customer = categoryBreakdown(data, "customer", { topN: 5 });
+    renderHBars("chartCustomer", customer);
+    document.getElementById("custSub").textContent = customer.taggedTickets + " of " + customer.total + " tagged";
+
+    var domainBreakdown = (function(){
+      var counts = {};
+      var withEmail = 0;
+      data.forEach(function(t){
+        if (!t.customer_email || t.customer_email.indexOf("@") === -1) return;
+        withEmail++;
+        var d = t.customer_email.split("@")[1].toLowerCase();
+        counts[d] = (counts[d] || 0) + 1;
+      });
+      var rows = Object.keys(counts).map(function(k){ return { key: k, label: k, value: counts[k] }; });
+      rows.sort(function(a, b){ return b.value - a.value; });
+      if (rows.length > 8){
+        var head = rows.slice(0, 7);
+        var tail = rows.slice(7);
+        head.push({ key: "__other", label: "Other domains", value: tail.reduce(function(s, r){ return s + r.value; }, 0) });
+        rows = head;
+      }
+      return { rows: rows, taggedTickets: withEmail, total: data.length };
+    })();
+    renderHBars("chartDomain", domainBreakdown);
+
+    var workloadBreakdown = (function(){
+      var counts = {};
+      data.forEach(function(t){
+        var name = t.assignee && t.assignee.trim() ? t.assignee.trim() : "Unassigned";
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      var rows = Object.keys(counts).map(function(k){ return { key: k, label: k, value: counts[k] }; });
+      rows.sort(function(a, b){ return b.value - a.value; });
+      return { rows: rows, taggedTickets: data.length, total: data.length };
+    })();
+    renderHBars("chartWorkload", workloadBreakdown, {
+      semantic: true,
+      colorFor: function(key){ return key === "Unassigned" ? "var(--neutral-bar)" : "var(--seq)"; }
+    });
+
+    renderTable(data);
+  }
+
+  mailboxSelect.addEventListener("change", render);
+  statusSelect.addEventListener("change", render);
+  searchInput.addEventListener("input", render);
+  document.getElementById("fReset").addEventListener("click", function(){
+    mailboxSelect.value = ""; statusSelect.value = ""; searchInput.value = "";
+    render();
+  });
+  document.querySelectorAll("#ticketTable thead th[data-sort]").forEach(function(th){
+    function activate(){
+      var key = th.dataset.sort;
+      if (sortState.key === key) sortState.dir *= -1;
+      else { sortState.key = key; sortState.dir = key === "created_at" || key === "number" ? -1 : 1; }
+      renderTable(applyFilters());
+    }
+    th.addEventListener("click", activate);
+    th.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(); } });
+  });
+
+  render();
+})();
+
+</script>
