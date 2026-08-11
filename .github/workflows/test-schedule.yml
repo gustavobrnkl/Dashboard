@@ -1,0 +1,16 @@
+name: Test Automatic Schedule
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scheduled trigger test
+        run: |
+          echo "Automatic schedule worked"
+          date -u
